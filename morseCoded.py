@@ -5,8 +5,8 @@
 # Andrew ID: blim2
 ################################################################################
 
-# rgbString function is modified code from Professor Davis's course website
-# https://pd43.github.io/notes/notes2-2.html
+# rgbString function is code from Professor Davis's course website
+# source: https://pd43.github.io/notes/notes2-2.html
 def rgbString(red, green, blue):
     return "#%02x%02x%02x" % (red, green, blue)
 
@@ -17,6 +17,7 @@ import random
 class Data(object):
     def __init__(self, width, height):
         # load self as appropriate
+        self.page = self.menu
         self.runInit(width, height)
         self.root.title("Morse Coded")
         self.font = "Consolas 12"
@@ -31,22 +32,22 @@ class Data(object):
         self.pulseEvent()
 
     # runInit method is modified code from Professor Davis's course website
-    # https://pd43.github.io/notes/code/events-example0.py
+    # source: https://pd43.github.io/notes/code/events-example0.py
     def runInit(self, width, height): 
         self.width = width
         self.height = height
         self.timerDelay = 100 # milliseconds
         self.root = Tk()
-        self.canvas = Canvas(self.root, width=self.width, height=self.height)
-        self.canvas.pack()
-        self.frame = Frame(self.canvas, bg="black",
+        self.frame = Frame(self.root, bg="black",
                            width=self.width, height=self.height)
         self.frame.pack(expand=True,fill=BOTH)
         # set up events
         self.root.bind("<Button-1>", lambda event:
-                                self.mousePressedWrapper(event))
+                       self.mousePressedWrapper(event))
+        self.root.bind("<ButtonRelease-1>", lambda event:
+                       self.mouseReleasedWrapper(event))
         self.root.bind("<Key>", lambda event:
-                                self.keyPressedWrapper(event))
+                       self.keyPressedWrapper(event))
         self.timerFiredWrapper()
     
     def resetFrame(self):
@@ -85,7 +86,7 @@ class Data(object):
 
     def backButton(self, prevPage):
         button = Button(self.frame, bg="red", text="X",
-                            width=6, height=3,)
+                            width=6, height=3)
         button.pack()
         button.place(x=790, y=10, anchor=NE)
         button.bind("<ButtonPress>", lambda event:
@@ -139,58 +140,75 @@ class Data(object):
         self.page = self.morseSearch
         self.resetFrame()
         self.wBack = self.backButton(self.menu)
-        self.wText = Text(self.frame, font=self.font, width=27, height=15)
-        self.wText.pack()
-        self.wText.place(x=400, y=300, anchor=CENTER)
-        self.board = self.morseSearchBoard()
-        words = ["qwert","qwery","rrrrr"]
-        self.loadWords(words)
-        self.wText.insert(END, str(self.board))
+        rows = 15
+        cols = 15
+        self.board = self.blankBoard(rows, cols)
+        # dict of tuples of r, c, and direct, which represent the start and end
+        # coordinates of each word, mapping to that word
+        self.answerKey = dict()
+        self.words = ["qwert","qwery","rrrrr"]
+        self.loadWords(self.words)
+        self.createMorseBoard()
+        self.answerOne = None
+        self.answerTwo = None
+        self.canvas = Canvas(self.frame, width=450, height=100)
+        self.canvas.pack()
+        self.canvas.place(x=400, y=475, anchor=N) 
 
-    def morseSearchBoard(self):
+    # 2d blank board
+    def blankBoard(self, rows, cols):
         ans = []
-        for row in range(5):
+        for row in range(rows):
             ans.append([])
-            for col in range(5):
+            for col in range(cols):
                 ans[-1].append("_")
         return ans
 
     def loadWords(self, words):
+        # add each word to the board, if possible
         for word in words:
             attempts = 0
             added = False
             while (attempts < 500 and not added):
-                if self.addWord(word,
-                                random.randint(0,len(self.board)-1),
-                                random.randint(0,len(self.board[0])-1),
-                                random.randint(0,7)):
+                r = random.randint(0,len(self.board)-1)
+                c = random.randint(0,len(self.board[0])-1)
+                direct = random.randint(0,7)
+                if (direct == 0):
+                    drow = 1
+                    dcol = 0
+                elif (direct == 1):
+                    drow = 1
+                    dcol = 1
+                elif (direct == 2):
+                    drow = 0
+                    dcol = 1
+                elif (direct == 3):
+                    drow = -1
+                    dcol = 1
+                elif (direct == 4):
+                    drow = -1
+                    dcol = 0
+                elif (direct == 5):
+                    drow = -1
+                    dcol = -1
+                elif (direct == 6):
+                    drow = 0
+                    dcol = -1
+                elif (direct == 7):
+                    drow = 1
+                    dcol = -1
+                if self.addWord(word, r, c, drow, dcol):
                     added = True
+                    rTwo = r + (len(word)-1) * drow
+                    cTwo = c + (len(word)-1) * dcol
+                    self.answerKey[(r, c, rTwo, cTwo)] = word
+        # fill the rest of the board with random characters
+        for r in range(len(self.board)):
+            for c in range(len(self.board[r])):
+                if (self.board[r][c] == "_"):
+                    self.board[r][c] = chr(ord("A") + random.randint(0,25))
 
-    def addWord(self, word, row, col, direct):
-        if (direct == 0):
-            drow = 1
-            dcol = 0
-        elif (direct == 1):
-            drow = 1
-            dcol = 1
-        elif (direct == 2):
-            drow = 0
-            dcol = 1
-        elif (direct == 3):
-            drow = -1
-            dcol = 1
-        elif (direct == 4):
-            drow = -1
-            dcol = 0
-        elif (direct == 5):
-            drow = -1
-            dcol = -1
-        elif (direct == 6):
-            drow = 0
-            dcol = -1
-        elif (direct == 7):
-            drow = 1
-            dcol = -1
+    def addWord(self, word, row, col, drow, dcol):
         for i in range(len(word)):
             if (not 0 <= row + drow*i < len(self.board) or
                 not 0 <= col + dcol*i < len(self.board[0]) or
@@ -200,6 +218,29 @@ class Data(object):
         for i in range(len(word)):
             self.board[row + drow*i][col + dcol*i] = word[i]
         return True
+
+    def createMorseBoard(self):
+        rows = len(self.board)
+        cols = len(self.board[0])
+        buttonSize = 30
+        # frame containing the grid
+        self.wBoard = Frame(self.frame,
+                            width=cols*buttonSize, height=rows*buttonSize)
+        self.wBoard.pack()
+        self.wBoard.place(x=400, y=10, anchor=N)
+        # grid of buttons for the morse search
+        self.boardGUI = []
+        for r in range(rows):
+            self.boardGUI.append([])
+            for c in range(cols):
+                button = Button(self.wBoard,
+                                bg="white", overrelief=FLAT,
+                                font="Arial 11",text=self.board[r][c])
+                button.pack()
+                button.place(x=r*(buttonSize), y=c*(buttonSize),
+                             width=buttonSize, height=buttonSize)
+                self.boardGUI[-1].append(button)
+        print(self.answerKey)
 
     # These are the CONTROLLERs.
     # IMPORTANT: CONTROLLER does *not* draw at all!
@@ -266,10 +307,55 @@ class Data(object):
         self.morse = random.choice(list(self.mapToText.keys()))
         self.wText.delete("1.0",END)
         self.wText.insert(END, self.toText(self.morse))
+
+    def wordFound(self, rOne, cOne, rTwo, cTwo):
+        if (rTwo > rOne): drow = 1
+        elif (rTwo < rOne): drow = -1
+        else: drow = 0
+        if (cTwo > cOne): dcol = 1
+        elif (cTwo < cOne): dcol = -1
+        else: dcol = 0
+        r = rOne
+        c = cOne
+        while (not (r == rTwo + drow and c == cTwo + dcol)):
+            self.boardGUI[r][c].config(bg="green")
+            r += drow
+            c += dcol
+        del self.answerKey[(rOne, cOne, rTwo, cTwo)]
         
+    
     def mousePressed(self, event):
         # use event.x and event.y
+        if (self.page == self.morseSearch):
+            if (event.widget.master == self.wBoard):
+                if (self.answerOne == None):
+                    self.answerOne = event.widget
+                    self.answerOne.config(font=self.font+" bold",
+                                          bg=self.answerOne.cget("fg"),
+                                          fg=self.answerOne.cget("bg"))
+                else:
+                    self.answerOne.config(font=self.font,
+                                          bg=self.answerOne.cget("fg"),
+                                          fg=self.answerOne.cget("bg"))
+                    self.answerTwo = event.widget
+                    rOne, cOne = -1,-1
+                    rTwo, cTwo = -1,-1
+                    for r in range(len(self.boardGUI)):
+                        for c in range(len(self.boardGUI[r])):
+                            if (self.boardGUI[r][c] == self.answerOne):
+                                rOne,cOne = r,c
+                            if (self.boardGUI[r][c] == self.answerTwo):
+                                rTwo,cTwo = r,c
+                    if ( (rOne, cOne, rTwo, cTwo) in self.answerKey.keys()):
+                        self.wordFound(rOne, cOne, rTwo, cTwo)
+                    self.answerOne = None
+                    self.answerTwo = None
+
+    def mouseReleased(self, event):
         pass
+            
+                    
+                
 
     def keyPressed(self, event):
         # use event.char and event.keysym
@@ -292,16 +378,36 @@ class Data(object):
     # It only draws on the canvas.
     def redrawAll(self):
         # draw in canvas
-        pass
+        canvas = self.canvas
+        if (self.page == self.morseSearch):
+            text = ""
+            for word in self.words():
+                if word in self.answerKey.values(): text += "*"
+                text += word+"\n"
+            canvas.create_text(int(canvas.cget("width"))//2, 0,
+                               anchor=N,
+                               font=self.font, fill="red",
+                               text=text.strip())
+            canvas.create_text(int(canvas.cget("width"))//2, 0,
+                               anchor=N,
+                               font=self.font, fill="red",
+                               text=text.strip())
 
-    # wrapper methods are modified code from Professor Davis's course website
+    # these wrapper methods are modified code from Professor Davis's course
+    # website
+    # source: https://pd43.github.io/notes/code/events-example0.py
     def redrawAllWrapper(self):
-        self.canvas.delete(ALL)
-        self.redrawAll()
-        self.canvas.update()    
+        if (hasattr(self, "canvas")):
+            self.canvas.delete(ALL)
+            self.redrawAll()
+            self.canvas.update()    
 
     def mousePressedWrapper(self, event):
         self.mousePressed(event)
+        self.redrawAllWrapper()
+
+    def mouseReleasedWrapper(self, event):
+        self.mouseReleased(event)
         self.redrawAllWrapper()
 
     def keyPressedWrapper(self, event):
@@ -312,14 +418,8 @@ class Data(object):
         self.timerFired()
         self.redrawAllWrapper()
         # pause, then call timerFired again
-        self.canvas.after(self.timerDelay, self.timerFiredWrapper)
-
-####################################
-####################################
-# use the run function as-is
-# run function from course website
-####################################
-####################################
+        if (hasattr(self, "canvas")):
+            self.canvas.after(self.timerDelay, self.timerFiredWrapper)
 
 def run(width=800, height=600):
         
