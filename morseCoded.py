@@ -5,7 +5,9 @@
 # Andrew ID: blim2
 ################################################################################
 
-def rgbString(red, green, blue): # by Professor Davis
+# rgbString function is modified code from Professor Davis's course website
+# https://pd43.github.io/notes/notes2-2.html
+def rgbString(red, green, blue):
     return "#%02x%02x%02x" % (red, green, blue)
 
 from tkinter import *
@@ -29,6 +31,7 @@ class Data(object):
         self.pulseEvent()
 
     # runInit method is modified code from Professor Davis's course website
+    # https://pd43.github.io/notes/code/events-example0.py
     def runInit(self, width, height): 
         self.width = width
         self.height = height
@@ -52,11 +55,12 @@ class Data(object):
             w.destroy()
 
     def initAlphabet(self):
-        path = "reference/alphabet.txt"
+        path = "reference/morse.txt"
         text = open(path,'r', encoding="utf8").read().splitlines()
         self.mapToMorse = dict()
         self.mapToText = dict()
         for line in text:
+            line = line.strip()
             if (not (line == "" or line[0] == "#")):
                 char  = line.split()[0]
                 morse = line.split()[1]
