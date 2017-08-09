@@ -14,22 +14,24 @@ from tkinter import *
 import random
 from tkinter import messagebox
 import sys
+import hashlib
 
 # Initialize the data which will be used to draw on the screen.
 class Data(object):
     def __init__(self, width, height, cheatMode):
         # load self as appropriate
-        self.page = self.menu
+        self.page = self.logIn
         self.canvas = None
         self.infoCanvas = None
         self.runInit(width, height)
         self.root.protocol("WM_DELETE_WINDOW", self.exitProtocol)
         self.root.title("Morse Coded")
         self.font = "Consolas "
+        self.initUser()
+        self.user = "Guest"
         self.initAlphabet()
         self.initRefWords()
-        self.user = "Guest"
-        self.menu()
+        self.logIn()
         self.cheat = False
         if (cheatMode and
             messagebox.askyesno("Cheats", "Enable cheats?\n\
@@ -73,9 +75,15 @@ class Data(object):
         for w in self.frame.winfo_children():
             w.destroy()
 
+    def initUser(self):
+        path = "user/user.txt"
+        self.users = open(path, 'r', encoding="utf8").read().splitlines()
+        path = "user/password.txt"
+        self.passwords = open(path, 'r', encoding="utf8").read().splitlines()
+
     def initAlphabet(self):
         path = "reference/morse.txt"
-        text = open(path,'r', encoding="utf8").read().splitlines()
+        text = open(path, 'r', encoding="utf8").read().splitlines()
         self.mapToMorse = dict()
         self.mapToText = dict()
         for line in text:
@@ -91,7 +99,7 @@ class Data(object):
 
     def initRefWords(self):
         path = "reference/words.txt"
-        text = open(path,'r', encoding="utf8").read().strip().split()
+        text = open(path, 'r', encoding="utf8").read().strip().split()
         self.refWords = text
 
     def pulseButton(self):
@@ -146,27 +154,38 @@ class Data(object):
         self.canvas.pack()
         self.canvas.place(x=40, y=40)
         self.wTranslator = Button(self.frame, bg="blue", text="Translator",
-                                  width=20,height=4)
+                                  font=self.font+"12", overrelief=FLAT,
+                                  width=18,height=4)
         self.wTranslator.pack()
-        self.wTranslator.place(x=780, y=20, anchor=NE)
+        self.wTranslator.place(x=780, y=5, anchor=NE)
         self.wTranslator.bind("<ButtonPress>", lambda event:
                               self.translator())
         self.wEncoder = Button(self.frame, bg="blue", text="Encoder",
-                               width=20,height=4)
+                               font=self.font+"12", overrelief=FLAT,
+                               width=18,height=4)
         self.wEncoder.pack()
-        self.wEncoder.place(x=780, y=120, anchor=NE)
+        self.wEncoder.place(x=780, y=105, anchor=NE)
         self.wEncoder.bind("<ButtonPress>", lambda event:
                            self.encoder())
         self.wMorseSearch = Button(self.frame, bg="blue", text="Morse Search",
-                                   width=20,height=4)
+                                   font=self.font+"12", overrelief=FLAT,
+                                   width=18,height=4)
         self.wMorseSearch.pack()
-        self.wMorseSearch.place(x=780, y=220, anchor=NE)
+        self.wMorseSearch.place(x=780, y=205, anchor=NE)
         self.wMorseSearch.bind("<ButtonPress>", lambda event:
                                self.morseSearch())
+        self.wLogOut = Button(self.frame, bg="purple", text="Log Out",
+                              font=self.font+"12", overrelief=FLAT,
+                              width=18,height=4)
+        self.wLogOut.pack()
+        self.wLogOut.place(x=780, y=405, anchor=NE)
+        self.wLogOut.bind("<ButtonPress>", lambda event:
+                          self.logIn())
         self.wSettings = Button(self.frame, bg="red", text="Settings",
-                                width=20,height=4)
+                                font=self.font+"12", overrelief=FLAT,
+                                width=18,height=4)
         self.wSettings.pack()
-        self.wSettings.place(x=780, y=520, anchor=NE)
+        self.wSettings.place(x=780, y=505, anchor=NE)
         self.wSettings.bind("<ButtonPress>", lambda event:
                                self.settings())
 
@@ -339,6 +358,145 @@ class Data(object):
                 ans.append(word)
         return ans
 
+    def logIn(self):
+        self.page = self.logIn
+        self.resetFrame()
+        self.showInfo = False
+        self.interval = 200
+        self.user = "Guest"
+        self.lLogIn = Label(self.frame, text="Log In",
+                            bg="black", fg="white",
+                            font=self.font+"40")
+        self.lLogIn.pack()
+        self.lLogIn.place(x=400, y=125, anchor=CENTER)
+        self.wUsername = Entry(self.frame, width=30)
+        self.wUsername.pack()
+        self.wUsername.place(x=300, y=250)
+        self.root.focus_set()
+        self.wUsername.focus_set()
+        self.root.focus_force()
+        self.lUsername = Label(self.frame, text="Username",
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lUsername.pack()
+        self.lUsername.place(x=200, y=250)
+        self.wPassword = Entry(self.frame, width=30, show="*")
+        self.wPassword.pack()
+        self.wPassword.place(x=300, y=300)
+        self.lPassword = Label(self.frame, text="Password",
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lPassword.pack()
+        self.lPassword.place(x=200, y=300)
+        self.wLogIn = Button(self.frame, bg="red",
+                             text="Log In",
+                             font=self.font+"12", overrelief=FLAT,
+                             width=16, height=4)
+        self.wLogIn.pack()
+        self.wLogIn.place(x=500, y=285, anchor=W)
+        self.wLogIn.bind("<ButtonPress>", lambda event:
+                         self.userLogIn(self.wUsername.get(),
+                                        self.wPassword.get()))
+        self.lMessage = Label(self.frame,
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lMessage.pack()
+        self.lMessage.place(x=400, y=375, anchor=CENTER)
+        self.wCreateAccount = Button(self.frame, bg="red",
+                                     text="Create Account",
+                                     font=self.font+"12", overrelief=FLAT,
+                                     width=35, height=4)
+        self.wCreateAccount.pack()
+        self.wCreateAccount.place(x=20, y=580, anchor=SW)
+        self.wCreateAccount.bind("<ButtonPress>", lambda event:
+                                 self.createAccount())
+        self.wGuest = Button(self.frame, bg="red", text="Continue as Guest",
+                             font=self.font+"12", overrelief=FLAT,
+                             width=45, height=4)
+        self.wGuest.pack()
+        self.wGuest.place(x=780, y=580, anchor=SE)
+        self.wGuest.bind("<ButtonPress>", lambda event:
+                            self.menu())
+
+    def userLogIn(self, user, password):
+        password = hashlib.sha256(password.encode("utf-8")).hexdigest()
+        if (user in self.users and
+            password == self.passwords[self.users.index(user)]):
+                self.user = user
+                self.menu()
+        else:
+            self.lMessage.config(text="Incorrect username/password.")
+
+    def createAccount(self):
+        self.page = self.createAccount
+        self.resetFrame()
+        self.showInfo = False
+        self.lCreateAccount = Label(self.frame, text="Create Account",
+                                    bg="black", fg="white",
+                                    font=self.font+"40")
+        self.lCreateAccount.pack()
+        self.lCreateAccount.place(x=400, y=125, anchor=CENTER)
+        self.wUsername = Entry(self.frame, width=30)
+        self.wUsername.pack()
+        self.wUsername.place(x=300, y=250)
+        self.root.focus_set()
+        self.wUsername.focus_set()
+        self.root.focus_force()
+        self.lUsername = Label(self.frame, text="Username",
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lUsername.pack()
+        self.lUsername.place(x=200, y=250)
+        self.wPassword = Entry(self.frame, width=30, show="*")
+        self.wPassword.pack()
+        self.wPassword.place(x=300, y=300)
+        self.lPassword = Label(self.frame, text="Password",
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lPassword.pack()
+        self.lPassword.place(x=200, y=300)
+        self.wCreateAccount = Button(self.frame, bg="red",
+                                     text="Create Account",
+                                     font=self.font+"12", overrelief=FLAT,
+                                     width=16, height=4)
+        self.wCreateAccount.pack()
+        self.wCreateAccount.place(x=500, y=285, anchor=W)
+        self.wCreateAccount.bind("<ButtonPress>", lambda event:
+                         self.userCreateAccount(self.wUsername.get(),
+                                                self.wPassword.get()))
+        self.lMessage = Label(self.frame,
+                               bg="black", fg="white",
+                               font=self.font+"12")
+        self.lMessage.pack()
+        self.lMessage.place(x=400, y=375, anchor=CENTER)
+        self.wLogIn = Button(self.frame, bg="red",
+                             text="Log In",
+                             font=self.font+"12", overrelief=FLAT,
+                             width=35, height=4)
+        self.wLogIn.pack()
+        self.wLogIn.place(x=20, y=580, anchor=SW)
+        self.wLogIn.bind("<ButtonPress>", lambda event:
+                         self.logIn())
+        self.wGuest = Button(self.frame, bg="red", text="Continue as Guest",
+                             font=self.font+"12", overrelief=FLAT,
+                             width=45, height=4)
+        self.wGuest.pack()
+        self.wGuest.place(x=780, y=580, anchor=SE)
+        self.wGuest.bind("<ButtonPress>", lambda event:
+                            self.menu())
+
+    def userCreateAccount(self, user, password):
+        if (user in self.users):
+            self.lMessage.config(text="Username already exists.")
+        else:
+            password = hashlib.sha256(password.encode("utf-8")).hexdigest()
+            self.users.append(user)
+            self.passwords.append(password)
+            path = "user/user.txt"
+            open(path, 'a', encoding="utf8").write(user+"\n")
+            path = "user/password.txt"
+            open(path, 'a', encoding="utf8").write(password+"\n")
+    
     def settings(self):
         self.page = self.settings
         self.resetFrame()
