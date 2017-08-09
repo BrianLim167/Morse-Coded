@@ -19,7 +19,6 @@ import sys
 class Data(object):
     def __init__(self, width, height, cheatMode):
         # load self as appropriate
-        self.cheatMode = cheatMode
         self.page = self.menu
         self.canvas = None
         self.infoCanvas = None
@@ -30,6 +29,11 @@ class Data(object):
         self.initAlphabet()
         self.initRefWords()
         self.menu()
+        self.cheat = False
+        if (cheatMode and
+            messagebox.askyesno("Cheats", "Enable cheats?\n\
+(This will cause answers to print to the shell)")):
+            self.cheat = True
         self.interval = 200
         self.showInfo = False
         self.pulse = False
@@ -189,7 +193,7 @@ class Data(object):
         if (dontRepeat in morseChars): morseChars.remove(dontRepeat)
         self.morse = random.choice(morseChars)
         self.pulseCode = ""
-        if (self.cheatMode): print(self.morse)
+        if (self.cheat): print(self.morse)
     
     def morseSearch(self):
         self.page = self.morseSearch
@@ -213,7 +217,7 @@ class Data(object):
         self.canvas.place(x=400, y=475, anchor=N)
         self.cRows = 4
         self.cCols = 2
-        if (self.cheatMode): print(self.answerKey)
+        if (self.cheat): print(self.answerKey)
 
     # 2d blank board
     def blankBoard(self, rows, cols):
