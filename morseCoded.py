@@ -12,24 +12,37 @@ def rgbString(red, green, blue):
 
 from tkinter import *
 import random
+from tkinter import messagebox
+import sys
 
 # Initialize the data which will be used to draw on the screen.
 class Data(object):
-    def __init__(self, width, height):
+    def __init__(self, width, height, cheatMode):
         # load self as appropriate
+        self.cheatMode = cheatMode
         self.page = self.menu
+        self.canvas = None
+        self.infoCanvas = None
         self.runInit(width, height)
+        self.root.protocol("WM_DELETE_WINDOW", self.exitProtocol)
         self.root.title("Morse Coded")
-        self.font = "Consolas 12"
+        self.font = "Consolas "
         self.initAlphabet()
+        self.initRefWords()
         self.menu()
         self.interval = 200
+        self.showInfo = False
         self.pulse = False
         self.pulseDelay = 10
         self.pulseOnTime = 0
         self.pulseOffTime = 0
         self.pulseCode = ""
         self.pulseEvent()
+
+    def exitProtocol(self):
+        if (messagebox.askyesno("Quit", "Do you want to quit?")):
+            self.root.destroy()
+            sys.exit(0)
 
     # runInit method is modified code from Professor Davis's course website
     # source: https://pd43.github.io/notes/code/events-example0.py
@@ -71,8 +84,13 @@ class Data(object):
         self.mapToMorse[" "] = "/"
         self.mapToText["/"] = " "
 
+    def initRefWords(self):
+        path = "reference/words.txt"
+        text = open(path,'r', encoding="utf8").read().strip().split()
+        self.refWords = text
+
     def pulseButton(self):
-        button = Button(self.frame, bg="red",
+        button = Button(self.frame, bg="red", overrelief=FLAT,
                               width=20, height=4,
                               command=lambda:
                               self.translatePulse())
@@ -85,16 +103,40 @@ class Data(object):
         return button
 
     def backButton(self, prevPage):
-        button = Button(self.frame, bg="red", text="X",
-                            width=6, height=3)
+        button = Button(self.frame, bg="red", overrelief=FLAT, text="X",
+                        font=self.font+"12 bold",
+                        width=6, height=3)
         button.pack()
         button.place(x=790, y=10, anchor=NE)
         button.bind("<ButtonPress>", lambda event:
-                        prevPage())
+                    prevPage())
 
+    def infoButton(self, infoPage):
+        button = Button(self.frame, bg="red", overrelief=FLAT, text="?",
+                        font=self.font+"12 bold",
+                        width=6, height=3)
+        button.pack()
+        if (infoPage == self.translator): button.place(x=700, y=10, anchor=NE)
+        else: button.place(x=790, y=50, anchor=NE)
+        button.bind("<ButtonPress>", lambda event:
+                    self.info(infoPage))
+    
+    def info(self, infoPage):
+        self.showInfo = not self.showInfo
+        if (self.showInfo):
+            self.infoCanvas = Canvas(self.frame, bg="blue",
+                                     width=400, height=300)
+            self.infoCanvas.pack()
+            self.infoCanvas.place(x=self.width//2, y=self.height//2,
+                                  anchor=CENTER)
+        else:
+            self.infoCanvas.destroy()
+            self.infoCanvas = None
+    
     def menu(self):
         self.page = self.menu
         self.resetFrame()
+        self.showInfo = False
         self.wTranslator = Button(self.frame, bg="red", text="Translator",
                                   width=20,height=4)
         self.wTranslator.pack()
@@ -117,11 +159,13 @@ class Data(object):
     def translator(self):
         self.page = self.translator
         self.resetFrame()
+        self.showInfo = False
         self.wBack = self.backButton(self.menu)
-        self.wText = Text(self.frame, font=self.font, width=40, height=15)
+        self.wInfo = self.infoButton(self.page)
+        self.wText = Text(self.frame, font=self.font+"12", width=40, height=15)
         self.wText.pack()
         self.wText.place(x=20, y=100)
-        self.wMorse = Text(self.frame, font=self.font, width=40, height=15)
+        self.wMorse = Text(self.frame, font=self.font+"12", width=40, height=15)
         self.wMorse.pack()
         self.wMorse.place(x=780, y=100, anchor=NE)
         self.wButton = self.pulseButton()
@@ -129,31 +173,45 @@ class Data(object):
     def encoder(self):
         self.page = self.encoder
         self.resetFrame()
+        self.showInfo = False
         self.wBack = self.backButton(self.menu)
-        self.wText = Text(self.frame, font=self.font, width=60, height=3)
-        self.wText.pack()
-        self.wText.place(x=400, y=100, anchor=CENTER)
-        self.setEncoderText()
+        self.canvas = Canvas(self.frame, bg="black",
+                             width=600, height=100)
+        self.canvas.pack()
+        self.canvas.place(x=400, y=300, anchor=CENTER)
+        self.setMorse()
         self.wButton = self.pulseButton()
-        
+
+    def setMorse(self, dontRepeat=None):
+        morseChars = list(self.mapToText.keys())
+        morseChars.remove("/")
+        if (dontRepeat in morseChars): morseChars.remove(dontRepeat)
+        self.morse = random.choice(morseChars)
+        self.pulseCode = ""
+        if (self.cheatMode): print(self.morse)
+    
     def morseSearch(self):
         self.page = self.morseSearch
         self.resetFrame()
+        self.showInfo = False
         self.wBack = self.backButton(self.menu)
         rows = 15
-        cols = 15
+        cols = 18
         self.board = self.blankBoard(rows, cols)
         # dict of tuples of r, c, and direct, which represent the start and end
         # coordinates of each word, mapping to that word
         self.answerKey = dict()
-        self.words = ["qwert","qwery","rrrrr"]
+        self.words = self.randomWords(8,40)
         self.loadWords(self.words)
         self.createMorseBoard()
         self.answerOne = None
         self.answerTwo = None
-        self.canvas = Canvas(self.frame, width=450, height=100)
+        self.canvas = Canvas(self.frame, width=750, height=100)
         self.canvas.pack()
-        self.canvas.place(x=400, y=475, anchor=N) 
+        self.canvas.place(x=400, y=475, anchor=N)
+        self.cRows = 4
+        self.cCols = 2
+        if (self.cheatMode): print(self.answerKey)
 
     # 2d blank board
     def blankBoard(self, rows, cols):
@@ -202,6 +260,7 @@ class Data(object):
                     rTwo = r + (len(word)-1) * drow
                     cTwo = c + (len(word)-1) * dcol
                     self.answerKey[(r, c, rTwo, cTwo)] = word
+                attempts += 1
         # fill the rest of the board with random characters
         for r in range(len(self.board)):
             for c in range(len(self.board[r])):
@@ -235,16 +294,35 @@ class Data(object):
             for c in range(cols):
                 button = Button(self.wBoard,
                                 bg="white", overrelief=FLAT,
-                                font="Arial 11",text=self.board[r][c])
+                                font="Arial 11",text=self.board[r][c].upper())
                 button.pack()
-                button.place(x=r*(buttonSize), y=c*(buttonSize),
+                button.place(x=c*(buttonSize), y=r*(buttonSize),
                              width=buttonSize, height=buttonSize)
                 self.boardGUI[-1].append(button)
-        print(self.answerKey)
 
-    # These are the CONTROLLERs.
-    # IMPORTANT: CONTROLLER does *not* draw at all!
-    # It only modifies data according to the events.
+    def wordFound(self, rOne, cOne, rTwo, cTwo):
+        if (rTwo > rOne): drow = 1
+        elif (rTwo < rOne): drow = -1
+        else: drow = 0
+        if (cTwo > cOne): dcol = 1
+        elif (cTwo < cOne): dcol = -1
+        else: dcol = 0
+        r = rOne
+        c = cOne
+        while (not (r == rTwo + drow and c == cTwo + dcol)):
+            self.boardGUI[r][c].config(bg="green2")
+            r += drow
+            c += dcol
+        del self.answerKey[(rOne, cOne, rTwo, cTwo)]
+
+    def randomWords(self, numOfWords, lenLimit):
+        ans = []
+        while (len(ans) < numOfWords):
+            word = random.choice(self.refWords)
+            if (len(self.toMorse(word)) <= lenLimit):
+                ans.append(word)
+        return ans
+
     def toMorse(self, text):
         ans = ""
         for i in range(len(text)):
@@ -272,8 +350,6 @@ class Data(object):
 
     def pulseEvent(self):
         if (self.pulse):
-    ##        if (self.pulseOffTime > self.interval*14):
-    ##            self.pulseCode = ""
             if (self.pulseOffTime > self.interval*7 and self.pulseCode != ""):
                 self.pulseCode += " / "
             elif (self.pulseOffTime > self.interval*2 and self.pulseCode != ""):
@@ -301,28 +377,7 @@ class Data(object):
             self.wText.insert(END, self.toText(self.pulseCode))
         elif (self.page == self.encoder):
             if (self.pulseCode.strip() == self.morse):
-                self.setEncoderText()
-
-    def setEncoderText(self):
-        self.morse = random.choice(list(self.mapToText.keys()))
-        self.wText.delete("1.0",END)
-        self.wText.insert(END, self.toText(self.morse))
-
-    def wordFound(self, rOne, cOne, rTwo, cTwo):
-        if (rTwo > rOne): drow = 1
-        elif (rTwo < rOne): drow = -1
-        else: drow = 0
-        if (cTwo > cOne): dcol = 1
-        elif (cTwo < cOne): dcol = -1
-        else: dcol = 0
-        r = rOne
-        c = cOne
-        while (not (r == rTwo + drow and c == cTwo + dcol)):
-            self.boardGUI[r][c].config(bg="green")
-            r += drow
-            c += dcol
-        del self.answerKey[(rOne, cOne, rTwo, cTwo)]
-        
+                self.setMorse(self.morse)
     
     def mousePressed(self, event):
         # use event.x and event.y
@@ -330,11 +385,11 @@ class Data(object):
             if (event.widget.master == self.wBoard):
                 if (self.answerOne == None):
                     self.answerOne = event.widget
-                    self.answerOne.config(font=self.font+" bold",
+                    self.answerOne.config(font=self.font+"12 bold",
                                           bg=self.answerOne.cget("fg"),
                                           fg=self.answerOne.cget("bg"))
                 else:
-                    self.answerOne.config(font=self.font,
+                    self.answerOne.config(font=self.font+"12",
                                           bg=self.answerOne.cget("fg"),
                                           fg=self.answerOne.cget("bg"))
                     self.answerTwo = event.widget
@@ -352,10 +407,7 @@ class Data(object):
                     self.answerTwo = None
 
     def mouseReleased(self, event):
-        pass
-            
-                    
-                
+        pass     
 
     def keyPressed(self, event):
         # use event.char and event.keysym
@@ -379,28 +431,72 @@ class Data(object):
     def redrawAll(self):
         # draw in canvas
         canvas = self.canvas
+        width = int(canvas.cget("width"))
+        height = int(canvas.cget("height"))
+        if (self.page == self.encoder):
+            fg = "white"
+            canvas.create_text(width//2, height//2,
+                               font=self.font+"50 bold", fill=fg,
+                               anchor=CENTER, text=self.toText(self.morse))
         if (self.page == self.morseSearch):
-            text = ""
-            for word in self.words():
-                if word in self.answerKey.values(): text += "*"
-                text += word+"\n"
-            canvas.create_text(int(canvas.cget("width"))//2, 0,
-                               anchor=N,
-                               font=self.font, fill="red",
-                               text=text.strip())
-            canvas.create_text(int(canvas.cget("width"))//2, 0,
-                               anchor=N,
-                               font=self.font, fill="red",
-                               text=text.strip())
+            rows = self.cRows
+            cols = self.cCols
+            i = 0
+            for row in range(rows):
+                for col in range(cols):
+                    if ((row + col) % 2 == 0): bg = "white"
+                    else: bg="black"
+                    if (i < len(self.words)):
+                        word = self.words[i]
+                        morse = self.toMorse(word)
+                        if (word in self.answerKey.values()): fg = "red"
+                        else:
+                            bg = "green2"
+                            fg = "white"
+                    else: word = ""
+                    canvas.create_rectangle(width*col//cols,
+                                            height*row//rows,
+                                            width*(col+1)//cols,
+                                            height*(row+1)//rows,
+                                            fill=bg, outline=bg)
+                    if (word != ""):
+                        canvas.create_text(width*col//cols + 10,
+                                           height*row//rows,
+                                           font=self.font+"12 bold", fill=fg,
+                                           anchor=NW, text=morse)
+                    i += 1
+
+    def redrawInfo(self):
+        canvas = self.infoCanvas
+        width = int(canvas.cget("width"))
+        height = int(canvas.cget("height"))
+        text = ""
+        if (self.page == self.translator):
+            text = '''\
+The left text box represents text in normal
+characters; the right text box, in morse
+code dots and dashes. Type in one box in
+order to get the appropriate translation in
+the other. Pressing the button near the
+bottom of the window will create a pulse
+that the text boxes will also be able to
+translate.
+'''
+        canvas.create_text(5, 0, font=self.font+"12", fill="yellow",
+                           anchor=NW, text=text)
 
     # these wrapper methods are modified code from Professor Davis's course
     # website
     # source: https://pd43.github.io/notes/code/events-example0.py
     def redrawAllWrapper(self):
-        if (hasattr(self, "canvas")):
+        if (self.canvas in self.frame.winfo_children()):
             self.canvas.delete(ALL)
             self.redrawAll()
-            self.canvas.update()    
+            self.canvas.update()
+        if (self.infoCanvas in self.frame.winfo_children()):
+            self.infoCanvas.delete(ALL)
+            self.redrawInfo()
+            self.infoCanvas.update()
 
     def mousePressedWrapper(self, event):
         self.mousePressed(event)
@@ -418,14 +514,16 @@ class Data(object):
         self.timerFired()
         self.redrawAllWrapper()
         # pause, then call timerFired again
-        if (hasattr(self, "canvas")):
-            self.canvas.after(self.timerDelay, self.timerFiredWrapper)
+        self.root.after(self.timerDelay, self.timerFiredWrapper)
 
-def run(width=800, height=600):
-        
+def run(cheatMode=False):
+    width = 800
+    height = 600
     # Set up data and call init
-    data = Data(width,height)
+    data = Data(width,height,cheatMode)
     # launch the app
     data.root.mainloop()  # blocks until window is closed
 
-run()
+if (__name__ == "__main__"):
+    cheatMode = True
+    run(cheatMode)
