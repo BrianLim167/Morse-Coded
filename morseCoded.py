@@ -28,6 +28,7 @@ class Data(object):
         self.font = "Consolas "
         self.initAlphabet()
         self.initRefWords()
+        self.user = "Guest"
         self.menu()
         self.cheat = False
         if (cheatMode and
@@ -107,7 +108,7 @@ class Data(object):
         return button
 
     def backButton(self, prevPage):
-        button = Button(self.frame, bg="red", overrelief=FLAT, text="X",
+        button = Button(self.frame, bg="red", overrelief=FLAT, text="<",
                         font=self.font+"12 bold",
                         width=6, height=3)
         button.pack()
@@ -141,24 +142,33 @@ class Data(object):
         self.page = self.menu
         self.resetFrame()
         self.showInfo = False
-        self.wTranslator = Button(self.frame, bg="red", text="Translator",
+        self.canvas = Canvas(self.frame, width=550, height=520, bg="black")
+        self.canvas.pack()
+        self.canvas.place(x=40, y=40)
+        self.wTranslator = Button(self.frame, bg="blue", text="Translator",
                                   width=20,height=4)
         self.wTranslator.pack()
-        self.wTranslator.place(x=400, y=300, anchor=CENTER)
+        self.wTranslator.place(x=780, y=20, anchor=NE)
         self.wTranslator.bind("<ButtonPress>", lambda event:
                               self.translator())
-        self.wEncoder = Button(self.frame, bg="red", text="Encoder",
+        self.wEncoder = Button(self.frame, bg="blue", text="Encoder",
                                width=20,height=4)
         self.wEncoder.pack()
-        self.wEncoder.place(x=400, y=400, anchor=CENTER)
+        self.wEncoder.place(x=780, y=120, anchor=NE)
         self.wEncoder.bind("<ButtonPress>", lambda event:
                            self.encoder())
-        self.wMorseSearch = Button(self.frame, bg="red", text="Morse Search",
+        self.wMorseSearch = Button(self.frame, bg="blue", text="Morse Search",
                                    width=20,height=4)
         self.wMorseSearch.pack()
-        self.wMorseSearch.place(x=400, y=500, anchor=CENTER)
+        self.wMorseSearch.place(x=780, y=220, anchor=NE)
         self.wMorseSearch.bind("<ButtonPress>", lambda event:
                                self.morseSearch())
+        self.wSettings = Button(self.frame, bg="red", text="Settings",
+                                width=20,height=4)
+        self.wSettings.pack()
+        self.wSettings.place(x=780, y=520, anchor=NE)
+        self.wSettings.bind("<ButtonPress>", lambda event:
+                               self.settings())
 
     def translator(self):
         self.page = self.translator
@@ -329,6 +339,18 @@ class Data(object):
                 ans.append(word)
         return ans
 
+    def settings(self):
+        self.page = self.settings
+        self.resetFrame()
+        self.showInfo = False
+        self.wBack = self.backButton(self.menu)
+        self.wInfo = self.infoButton(self.page)
+        self.wTime = Scale(self.frame, from_=30, to=300, length = 270,
+                           orient=HORIZONTAL, label="Interval")
+        self.wTime.pack()
+        self.wTime.place(x=400, y=300, anchor=CENTER)
+        self.wTime.set(self.interval)
+
     def toMorse(self, text):
         ans = ""
         for i in range(len(text)):
@@ -413,7 +435,9 @@ class Data(object):
                     self.answerTwo = None
 
     def mouseReleased(self, event):
-        pass     
+        if (self.page == self.settings):
+            if (event.widget == self.wTime):
+                self.interval = self.wTime.get()
 
     def keyPressed(self, event):
         # use event.char and event.keysym
@@ -439,6 +463,17 @@ class Data(object):
         canvas = self.canvas
         width = int(canvas.cget("width"))
         height = int(canvas.cget("height"))
+        if (self.page == self.menu):
+            fg = "white"
+            canvas.create_text(width//2, 50,
+                               font=self.font+"15", fill=fg,
+                               anchor=CENTER, text="Hello, "+self.user)
+            canvas.create_text(10, 100,
+                               font=self.font+"90 bold", fill=fg,
+                               anchor=NW, text="Morse\n   Coded")
+            canvas.create_text(width//2, 480,
+                               font=self.font+"15 italic", fill=fg,
+                               anchor=CENTER, text="developed by Brian Lim")
         if (self.page == self.encoder):
             fg = "white"
             canvas.create_text(width//2, height//2,
