@@ -5,11 +5,6 @@
 # Andrew ID: blim2
 ################################################################################
 
-# rgbString function is code from Professor Davis's course website
-# source: https://pd43.github.io/notes/notes2-2.html
-def rgbString(red, green, blue):
-    return "#%02x%02x%02x" % (red, green, blue)
-
 from tkinter import *
 import random
 from tkinter import messagebox
@@ -42,6 +37,7 @@ class Data(object):
         self.pulseCode = ""
         self.pulseEvent()
 
+    # ask the user to quit
     def exitProtocol(self):
         if (messagebox.askyesno("Quit", "Do you want to quit?")):
             self.root.destroy()
@@ -65,7 +61,8 @@ class Data(object):
         self.root.bind("<Key>", lambda event:
                        self.keyPressedWrapper(event))
         self.timerFiredWrapper()
-    
+
+    # destroy widgets in the frame
     def resetFrame(self):
         self.pulseCode = ""
         for w in self.frame.winfo_children():
@@ -81,6 +78,7 @@ class Data(object):
         path = "user/pressTime.txt"
         self.pressTime = open(path, 'r', encoding="utf8").read().splitlines()
 
+    # create dictionaries that can be used to translate to and from morse code
     def initAlphabet(self):
         path = "reference/morse.txt"
         text = open(path, 'r', encoding="utf8").read().splitlines()
@@ -102,6 +100,7 @@ class Data(object):
         text = open(path, 'r', encoding="utf8").read().strip().split()
         self.refWords = text
 
+    # button that sends pulses
     def pulseButton(self):
         button = Button(self.frame, bg="red", overrelief=FLAT,
                               width=20, height=4,
@@ -115,6 +114,7 @@ class Data(object):
                     self.pulseOff())
         return button
 
+    # button that goes to the previous screen
     def backButton(self, prevPage):
         button = Button(self.frame, bg="red", overrelief=FLAT, text="<",
                         font=self.font+"12 bold",
@@ -124,6 +124,7 @@ class Data(object):
         button.bind("<ButtonPress>", lambda event:
                     prevPage())
 
+    # button that toggles the info screen
     def infoButton(self, infoPage):
         button = Button(self.frame, bg="red", overrelief=FLAT, text="?",
                         font=self.font+"12 bold",
@@ -133,7 +134,8 @@ class Data(object):
         else: button.place(x=790, y=110, anchor=NE)
         button.bind("<ButtonPress>", lambda event:
                     self.info(infoPage))
-    
+
+    # info displayer
     def info(self, infoPage):
         self.showInfo = not self.showInfo
         if (self.showInfo):
@@ -145,7 +147,12 @@ class Data(object):
         else:
             self.infoCanvas.destroy()
             self.infoCanvas = None
-    
+
+    ############################################################################
+    # screen initializers
+    ############################################################################
+
+    # menu screen
     def menu(self):
         self.page = self.menu
         self.resetFrame()
@@ -202,6 +209,7 @@ class Data(object):
         self.wSettings.bind("<ButtonPress>", lambda event:
                                self.settings())
 
+    # translator screen
     def translator(self):
         self.page = self.translator
         self.resetFrame()
@@ -216,6 +224,7 @@ class Data(object):
         self.wMorse.place(x=780, y=100, anchor=NE)
         self.wButton = self.pulseButton()
 
+    # encoder screen
     def encoder(self):
         self.page = self.encoder
         self.resetFrame()
@@ -235,13 +244,15 @@ class Data(object):
         self.wButton = self.pulseButton()
 
     def setMorse(self, dontRepeat=None):
+        # select a new character for the encoder
         morseChars = list(self.mapToText.keys())
         morseChars.remove("/")
         if (dontRepeat in morseChars): morseChars.remove(dontRepeat)
         self.morse = random.choice(morseChars)
         self.pulseCode = ""
         if (self.cheatVar.get() == 1): self.lCheat.config(text=self.morse)
-    
+
+    # morse search screen
     def morseSearch(self):
         self.page = self.morseSearch
         self.resetFrame()
@@ -267,8 +278,8 @@ class Data(object):
         self.cRows = 4
         self.cCols = 2
 
-    # 2d blank board
     def blankBoard(self, rows, cols):
+        # 2d blank board
         ans = []
         for row in range(rows):
             ans.append([])
@@ -355,6 +366,7 @@ class Data(object):
                 self.boardGUI[-1].append(button)
 
     def wordFound(self, rOne, cOne, rTwo, cTwo):
+        # highlight found word in color
         if (rTwo > rOne): drow = 1
         elif (rTwo < rOne): drow = -1
         else: drow = 0
@@ -370,6 +382,7 @@ class Data(object):
         del self.answerKey[(rOne, cOne, rTwo, cTwo)]
 
     def randomWords(self, numOfWords, lenLimit):
+        # list of numOfWords many random words
         ans = []
         while (len(ans) < numOfWords):
             word = random.choice(self.refWords)
@@ -378,6 +391,7 @@ class Data(object):
         return ans
 
     def highlight(self, bold):
+        # highlight word in bold text
         if (bold):
             font = "Arial 18 bold"
             coords = self.targetCoords
@@ -398,6 +412,7 @@ class Data(object):
             r += drow
             c += dcol
 
+    # user info screen
     def userInfo(self):
         self.page = self.userInfo
         self.resetFrame()
@@ -418,6 +433,7 @@ class Data(object):
         self.lPressTime.pack()
         self.lPressTime.place(x=400, y=350, anchor=CENTER)
 
+    # login screen
     def logIn(self):
         self.page = self.logIn
         self.resetFrame()
@@ -488,6 +504,7 @@ class Data(object):
         else:
             self.lMessage.config(text="Incorrect username/password.")
 
+    # create account screen
     def createAccount(self):
         self.page = self.createAccount
         self.resetFrame()
@@ -561,7 +578,9 @@ class Data(object):
             open(path, 'a', encoding="utf8").write("0\n")
             path = "user/pressTime.txt"
             open(path, 'a', encoding="utf8").write("0\n")
-    
+            self.initUser()
+
+    # settings screen
     def settings(self):
         self.page = self.settings
         self.resetFrame()
@@ -581,6 +600,10 @@ class Data(object):
         self.wTime.place(x=400, y=300, anchor=CENTER)
         self.wTime.set(self.interval)
 
+    ############################################################################
+    # translation methods
+    ############################################################################
+    
     def toMorse(self, text):
         ans = ""
         for i in range(len(text)):
@@ -599,6 +622,10 @@ class Data(object):
             if (char in self.mapToText):
                 ans += self.mapToText[char]
         return ans
+    
+    ############################################################################
+    # pulse event handling
+    ############################################################################
 
     def pulseOn(self):
         self.pulse = True
@@ -645,7 +672,11 @@ class Data(object):
         elif (self.page == self.encoder):
             if (self.pulseCode.strip() == self.morse):
                 self.setMorse(self.morse)
-    
+
+    ############################################################################
+    # other events
+    ############################################################################
+
     def mousePressed(self, event):
         # use event.x and event.y
         if (self.page == self.morseSearch):
@@ -730,10 +761,10 @@ class Data(object):
                             return
                         i +=1
 
-
-    # This is the VIEW
-    # IMPORTANT: VIEW does *not* modify data at all!
-    # It only draws on the canvas.
+    ############################################################################
+    # canvas drawing
+    ############################################################################
+    
     def redrawAll(self):
         # draw in canvas
         canvas = self.canvas
@@ -822,9 +853,13 @@ for pulses.
         canvas.create_text(5, 0, font=self.font+"12", fill="yellow",
                            anchor=NW, text=text)
 
+    ############################################################################
+    # event wrapper functions
+    ############################################################################
     # these wrapper methods are modified code from Professor Davis's course
     # website
     # source: https://pd43.github.io/notes/code/events-example0.py
+    
     def redrawAllWrapper(self):
         if (self.canvas in self.frame.winfo_children()):
             self.canvas.delete(ALL)
@@ -859,6 +894,11 @@ def run(cheatMode=False):
     # Set up data and call init
     data = Data(width,height,cheatMode)
     # launch the app
+    w = data.width
+    h = data.height
+    data.root.geometry("%dx%d%+d%+d" % (w, h,
+                                        data.root.winfo_screenwidth()//2 - w//2,
+                                        data.root.winfo_screenheight()//2 - h//2))
     data.root.mainloop()  # blocks until window is closed
 
 if (__name__ == "__main__"):
