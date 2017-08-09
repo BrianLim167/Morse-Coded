@@ -32,11 +32,7 @@ class Data(object):
         self.initAlphabet()
         self.initRefWords()
         self.logIn()
-        self.cheat = False
-        if (cheatMode and
-            messagebox.askyesno("Cheats", "Enable cheats?\n\
-(This will cause answers to print to the shell)")):
-            self.cheat = True
+        self.cheatVar = IntVar()
         self.interval = 200
         self.showInfo = False
         self.pulse = False
@@ -80,6 +76,10 @@ class Data(object):
         self.users = open(path, 'r', encoding="utf8").read().splitlines()
         path = "user/password.txt"
         self.passwords = open(path, 'r', encoding="utf8").read().splitlines()
+        path = "user/clicks.txt"
+        self.clicks = open(path, 'r', encoding="utf8").read().splitlines()
+        path = "user/pressTime.txt"
+        self.pressTime = open(path, 'r', encoding="utf8").read().splitlines()
 
     def initAlphabet(self):
         path = "reference/morse.txt"
@@ -150,6 +150,11 @@ class Data(object):
         self.page = self.menu
         self.resetFrame()
         self.showInfo = False
+        self.lHello = Label(self.frame,
+                            font=self.font+"15", bg="black", fg="white",
+                            text="Hello, "+self.user)
+        self.lHello.pack()
+        self.lHello.place(x=40, y=10)
         self.canvas = Canvas(self.frame, width=550, height=520, bg="black")
         self.canvas.pack()
         self.canvas.place(x=40, y=40)
@@ -174,6 +179,14 @@ class Data(object):
         self.wMorseSearch.place(x=780, y=205, anchor=NE)
         self.wMorseSearch.bind("<ButtonPress>", lambda event:
                                self.morseSearch())
+        if (self.user != "Guest"):
+            self.wUserInfo = Button(self.frame, bg="purple", text="User Info",
+                                    font=self.font+"12", overrelief=FLAT,
+                                    width=18,height=4)
+            self.wUserInfo.pack()
+            self.wUserInfo.place(x=780, y=305, anchor=NE)
+            self.wUserInfo.bind("<ButtonPress>", lambda event:
+                                self.userInfo())
         self.wLogOut = Button(self.frame, bg="purple", text="Log Out",
                               font=self.font+"12", overrelief=FLAT,
                               width=18,height=4)
@@ -209,6 +222,11 @@ class Data(object):
         self.showInfo = False
         self.wBack = self.backButton(self.menu)
         self.wInfo = self.infoButton(self.page)
+        self.lCheat = Label(self.frame,
+                            bg="black", fg="white",
+                            font=self.font+"20")
+        self.lCheat.pack()
+        self.lCheat.place(x=400, y=200, anchor=CENTER)
         self.canvas = Canvas(self.frame, bg="black",
                              width=600, height=100)
         self.canvas.pack()
@@ -222,7 +240,7 @@ class Data(object):
         if (dontRepeat in morseChars): morseChars.remove(dontRepeat)
         self.morse = random.choice(morseChars)
         self.pulseCode = ""
-        if (self.cheat): print(self.morse)
+        if (self.cheatVar.get() == 1): self.lCheat.config(text=self.morse)
     
     def morseSearch(self):
         self.page = self.morseSearch
@@ -233,6 +251,8 @@ class Data(object):
         rows = 15
         cols = 18
         self.board = self.blankBoard(rows, cols)
+        self.targetCoords = (0,0,0,0)
+        self.lastTargetCoords = (0,0,0,0)
         # dict of tuples of r, c, and direct, which represent the start and end
         # coordinates of each word, mapping to that word
         self.answerKey = dict()
@@ -246,7 +266,6 @@ class Data(object):
         self.canvas.place(x=400, y=475, anchor=N)
         self.cRows = 4
         self.cCols = 2
-        if (self.cheat): print(self.answerKey)
 
     # 2d blank board
     def blankBoard(self, rows, cols):
@@ -358,10 +377,52 @@ class Data(object):
                 ans.append(word)
         return ans
 
+    def highlight(self, bold):
+        if (bold):
+            font = "Arial 18 bold"
+            coords = self.targetCoords
+        else:
+            font = "Arial 11"
+            coords = self.lastTargetCoords
+        (rOne, cOne, rTwo, cTwo) = coords
+        if (rTwo > rOne): drow = 1
+        elif (rTwo < rOne): drow = -1
+        else: drow = 0
+        if (cTwo > cOne): dcol = 1
+        elif (cTwo < cOne): dcol = -1
+        else: dcol = 0
+        r = rOne
+        c = cOne
+        while (not (r == rTwo + drow and c == cTwo + dcol)):
+            self.boardGUI[r][c].config(font=font)
+            r += drow
+            c += dcol
+
+    def userInfo(self):
+        self.page = self.userInfo
+        self.resetFrame()
+        self.showInfo = False
+        self.wBack = self.backButton(self.menu)
+        clicks = self.clicks[self.users.index(self.user)]
+        pressTime = self.pressTime[self.users.index(self.user)]
+        self.lClicks = Label(self.frame, text="Number of Clicks: "+clicks,
+                             bg="black", fg="white",
+                             font=self.font+"20")
+        self.lClicks.pack()
+        self.lClicks.place(x=400, y=250, anchor=CENTER)
+        self.lPressTime = Label(self.frame,
+                                text="Time Spent Pressing the Pulse Button: "+\
+                                str(int(pressTime)//1000)+" seconds",
+                                bg="black", fg="white",
+                                font=self.font+"20")
+        self.lPressTime.pack()
+        self.lPressTime.place(x=400, y=350, anchor=CENTER)
+
     def logIn(self):
         self.page = self.logIn
         self.resetFrame()
         self.showInfo = False
+        self.cheatVar = IntVar()
         self.interval = 200
         self.user = "Guest"
         self.lLogIn = Label(self.frame, text="Log In",
@@ -496,6 +557,10 @@ class Data(object):
             open(path, 'a', encoding="utf8").write(user+"\n")
             path = "user/password.txt"
             open(path, 'a', encoding="utf8").write(password+"\n")
+            path = "user/clicks.txt"
+            open(path, 'a', encoding="utf8").write("0\n")
+            path = "user/pressTime.txt"
+            open(path, 'a', encoding="utf8").write("0\n")
     
     def settings(self):
         self.page = self.settings
@@ -503,7 +568,14 @@ class Data(object):
         self.showInfo = False
         self.wBack = self.backButton(self.menu)
         self.wInfo = self.infoButton(self.page)
+        self.wCheat = Checkbutton(self.frame, text="Cheats",
+                                  bg="black", fg="white", selectcolor="black",
+                                  font=self.font+"12",
+                                  variable=self.cheatVar)
+        self.wCheat.pack()
+        self.wCheat.place(x=400, y=200, anchor=CENTER)
         self.wTime = Scale(self.frame, from_=30, to=300, length = 270,
+                           bg="black", fg="white", font=self.font+"12",
                            orient=HORIZONTAL, label="Interval")
         self.wTime.pack()
         self.wTime.place(x=400, y=300, anchor=CENTER)
@@ -549,9 +621,18 @@ class Data(object):
             elif (0 < self.pulseOnTime):
                 self.pulseCode += "."
             if (self.pulseOnTime > 0): self.translatePulse()
+            if (self.user != "Guest"):
+                pressTime = self.pressTime[self.users.index(self.user)]
+                self.pressTime[self.users.index(self.user)] = str(
+                    int(pressTime) + self.pulseOnTime)
+                newPressTimeTxt = ""
+                for line in self.pressTime:
+                    newPressTimeTxt += line + "\n"
+                path = "user/pressTime.txt"
+                open(path, 'w', encoding="utf8").write(newPressTimeTxt)
             self.pulseOnTime = 0
             self.pulseOffTime += self.pulseDelay
-            if (self.pulseOffTime > self.interval*14):
+            if (self.pulseOffTime > self.interval*10):
                 self.pulseCode = ""
         self.root.after(self.pulseDelay, self.pulseEvent)
 
@@ -593,7 +674,20 @@ class Data(object):
                     self.answerTwo = None
 
     def mouseReleased(self, event):
+        if (self.user != "Guest"):
+            user = self.user
+            clicks = self.clicks[self.users.index(user)]
+            self.clicks[self.users.index(user)] = str(int(clicks) + 1)
+            newClicksTxt = ""
+            for line in self.clicks:
+                newClicksTxt += line + "\n"
+            path = "user/clicks.txt"
+            open(path, 'w', encoding="utf8").write(newClicksTxt)
+        if (self.page == self.userInfo):
+            self.lClicks.config(text="Number of Clicks: "+clicks)
         if (self.page == self.settings):
+            if (event.widget == self.wCheat):
+                self.cheat = (self.cheatVar == 1)
             if (event.widget == self.wTime):
                 self.interval = self.wTime.get()
 
@@ -610,7 +704,31 @@ class Data(object):
                 self.wText.insert(END, self.toText(self.wMorse.get("1.0",END)))
 
     def timerFired(self):
-        pass
+        if (self.page == self.morseSearch):
+            if (self.cheatVar.get() == 1):
+                width = int(self.canvas.cget("width"))
+                height = int(self.canvas.cget("height"))
+                x = self.canvas.winfo_pointerx() - self.canvas.winfo_rootx()
+                y = self.canvas.winfo_pointery() - self.canvas.winfo_rooty()
+                rows = self.cRows
+                cols = self.cCols
+                i = 0
+                self.lastTargetCoords = self.targetCoords
+                self.highlight(False)
+                found = False
+                for row in range(rows):
+                    for col in range(cols):
+                        if (width*col//cols <= x < width*(col+1)//cols and
+                            height*row//rows <= y < height*(row+1)//rows):
+                            target = self.words[i]
+                            for coords in self.answerKey:
+                                if (self.answerKey[coords] == target):
+                                    self.targetCoords = coords
+                                    found = True
+                                    break
+                            if (found): self.highlight(True)
+                            return
+                        i +=1
 
 
     # This is the VIEW
@@ -623,9 +741,6 @@ class Data(object):
         height = int(canvas.cget("height"))
         if (self.page == self.menu):
             fg = "white"
-            canvas.create_text(width//2, 50,
-                               font=self.font+"15", fill=fg,
-                               anchor=CENTER, text="Hello, "+self.user)
             canvas.create_text(10, 100,
                                font=self.font+"90 bold", fill=fg,
                                anchor=NW, text="Morse\n   Coded")
@@ -694,6 +809,15 @@ Solve the word search by figuring out the
 words in the morse code word bank. Click on
 the word search to indicate where the words
 appear.
+'''
+        if (self.page == self.settings):
+            text = '''\
+Enabling cheats will show the correct morse
+code marks in Encoder, and will highlight a
+word in Morse Search if the cursor is
+hovering over a word in the word bank.
+Setting the interval determines the timing
+for pulses.
 '''
         canvas.create_text(5, 0, font=self.font+"12", fill="yellow",
                            anchor=NW, text=text)
