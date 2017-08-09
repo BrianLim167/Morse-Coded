@@ -117,7 +117,7 @@ class Data(object):
                         width=6, height=3)
         button.pack()
         if (infoPage == self.translator): button.place(x=700, y=10, anchor=NE)
-        else: button.place(x=790, y=50, anchor=NE)
+        else: button.place(x=790, y=110, anchor=NE)
         button.bind("<ButtonPress>", lambda event:
                     self.info(infoPage))
     
@@ -175,6 +175,7 @@ class Data(object):
         self.resetFrame()
         self.showInfo = False
         self.wBack = self.backButton(self.menu)
+        self.wInfo = self.infoButton(self.page)
         self.canvas = Canvas(self.frame, bg="black",
                              width=600, height=100)
         self.canvas.pack()
@@ -195,6 +196,7 @@ class Data(object):
         self.resetFrame()
         self.showInfo = False
         self.wBack = self.backButton(self.menu)
+        self.wInfo = self.infoButton(self.page)
         rows = 15
         cols = 18
         self.board = self.blankBoard(rows, cols)
@@ -481,6 +483,20 @@ the other. Pressing the button near the
 bottom of the window will create a pulse
 that the text boxes will also be able to
 translate.
+'''
+        if (self.page == self.encoder):
+            text = '''\
+Some text will be displayed in the center of
+the screen; press the button near the bottom
+of the window in order to create a pulse
+that matches the displayed text.
+'''
+        if (self.page == self.morseSearch):
+            text = '''\
+Solve the word search by figuring out the
+words in the morse code word bank. Click on
+the word search to indicate where the words
+appear.
 '''
         canvas.create_text(5, 0, font=self.font+"12", fill="yellow",
                            anchor=NW, text=text)
